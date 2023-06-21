@@ -1,0 +1,17 @@
+apiVersion: apiconnect.ibm.com/v1beta1
+kind: APIConnectCluster
+metadata:
+  labels:
+    app.kubernetes.io/instance: apiconnect
+    app.kubernetes.io/managed-by: ibm-apiconnect
+    app.kubernetes.io/name: apiconnect-minimum
+  name: {{instance_properties.name}}
+  namespace: {{current_cp4i_cluster.project}}
+spec:
+  license:
+    accept: {{ _cpd_accept_licenses | default(False) }}
+    use: nonproduction
+    license: {{instance_properties.license}}
+  profile: n1xc7.m48
+  version: "{{instance_properties.version}}"
+  storageClassName: {{ocp_storage_class_block}}

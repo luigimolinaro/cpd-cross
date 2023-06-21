@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cloud-pak-crontab-ds
+  namespace: kube-system
+  labels:
+    tier: management
+    app: cloud-pak-crontab-ds
+spec:
+  selector:
+    matchLabels:
+      name: cloud-pak-crontab-ds
+  template:
+    metadata:
+      labels:
+        name: cloud-pak-crontab-ds
+    spec:
+      hostNetwork: true
+      hostPID: true
+      hostIPC: true
+      containers:
+        - name: sleepforever
+          resources:
+            requests:
+              cpu: 0.01
+          image: {{ cpd_ds_image | default('registry.access.redhat.com/ubi8:latest') }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              date ;
+              /usr/bin/rm -rf /ext-cloud-pak-node-fix/* ;
+              /usr/bin/cp -rL /cloud-pak-node-fix/* /ext-cloud-pak-node-fix/ ;
+              chmod +x /ext-cloud-pak-node-fix/cloud-pak-node-fix.sh ;
+              touch /ext-var/spool/cron/root ;
+              if ! grep -q 'cloud-pak-node-fix' /ext-var/spool/cron/root;then 
+                echo '*/5 * * * * bash -c "date >> /tmp/cloud-pak-node-fix.log; sh /cloud-pak-node-fix/cloud-pak-node-fix.sh"' >> /ext-var/spool/cron/root ;
+              fi ;
+              cat /ext-var/spool/cron/root ;
+              while true; do
+                sleep 100000;
+              done
+          volumeMounts:
+            - name: node-settings-scripts
+              mountPath: /cloud-pak-node-fix
+            - name: node-settings-config
+              mountPath: /cloud-pak-node-fix/config
+            - name: node-settings-secrets
+              mountPath: /cloud-pak-node-fix/secrets
+            - name: modifycpnodefix
+              mountPath: /ext-cloud-pak-node-fix
+            - name: modifyvar
+              mountPath: /ext-var
+      volumes:
+        - name: node-settings-scripts
+          configMap:
+            name: cloud-pak-node-fix-scripts
+        - name: node-settings-config
+          configMap:
+            name: cloud-pak-node-fix-config
+        - name: node-settings-secrets
+          secret:
+            secretName: cloud-pak-node-fix-secrets
+        - name: modifycpnodefix
+          hostPath:
+            path: /cloud-pak-node-fix
+        - name: modifyvar
+          hostPath:
+            path: /var
+
+

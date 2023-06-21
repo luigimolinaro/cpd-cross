@@ -1,0 +1,46 @@
+---
+- include_role:
+    name: cp4d-variables
+
+- name: Run pre-processing scripts
+  include_tasks: cp4d-install-cr-pre-processing.yml
+  loop: "{{ _cartridges_to_install | default([]) }}"
+  loop_control:
+    loop_var: _current_cp4d_cartridge
+
+- name: Starting background task to patch Db2U clusters. Logs are in {{ status_dir }}/log/{{ _p_current_cp4d_cluster.project }}-db2u-temp-patch.log
+  shell: |
+    {{ role_path }}/files/temp-patch-db2u.sh \
+      {{ status_dir }} \
+      {{ _p_current_cp4d_cluster.project }}
+  async: 86400
+  poll: 0
+  register: _patch_db2u
+
+- name: Show details of background task to patch Db2U
+  debug:
+    var: _patch_db2u
+
+# Set fact which is handled when testing install of all cartridges
+- set_fact:
+    _cp4d_cartridges_installed_successfully: True
+
+- include_tasks: cp4d-install-cartridges-olm-utils.yml
+
+- name: Install separate cartridges
+  include_tasks: cp4d-install-separate-cr.yml
+  loop: "{{ _cartridges_to_install | default([]) }}"
+  loop_control:
+    loop_var: _current_cp4d_cartridge
+
+- name: Run post-processing scripts
+  include_tasks: cp4d-install-cr-post-processing.yml
+  loop: "{{ _cartridges_to_install | default([]) }}"
+  loop_control:
+    loop_var: _current_cp4d_cartridge
+
+- name: Wait for cartridges to finish installation
+  include_tasks: cp4d-wait-cartridges-ready.yml
+  loop: "{{ _cartridges_to_install | default([]) }}"
+  loop_control:
+    loop_var: _current_cp4d_cartridge
