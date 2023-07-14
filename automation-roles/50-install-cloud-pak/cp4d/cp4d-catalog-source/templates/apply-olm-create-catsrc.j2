@@ -4,6 +4,7 @@
     --catsrc=true --sub=false --offline_dir={{ status_dir }}/cp4d/case -v \
     --preview={%- if _p_preview_script -%}true{%- else -%}false{%- endif %} \
     --upgrade={%- if _upgrade_cp4d -%}true{%- else -%}false{%- endif %} \
+    --cs_ns=cp4d \
     --components={% for c in _cartridges_to_install -%}
 {%- if ((c.state | default('installed')) == 'installed') or (cpd_test_cartridges | default(False) | bool) -%}
 {%- if not loop.first -%},{% endif -%}
